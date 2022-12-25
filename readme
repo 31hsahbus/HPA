@@ -1,0 +1,74 @@
+The HPA control loop continuously monitors the configured metric, compares it with the target value of that metric, 
+and then decides to increase or decrease the number of replica pods to achieve the target value.
+
+#Metrics Server can be installed either directly from YAML manifest or via the official Helm chart.
+minikube addons enable metrics-server
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.3.6/components.yaml
+#issue in hpa(unknown)
+ kubectl edit deployment metrics-server
+
+ - --kubelet-insecure-tls
+ - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostnamet metrics-server
+
+
+#create a namespace
+kubectl create ns hpa-test
+
+#create a deployment for hpa testing
+ kubectl create -f example-app.yaml
+
+#Make sure the deployment is created and the pod is running 
+ kubectl get deploy -n hpa-test
+
+# create the HPA using kubectl autoscale command.
+kubectl -n hpa-test autoscale deployment php-apache --cpu-percent=50 --min=1 --max=5
+
+#yamilfile
+
+apiVersion: autoscaling/v1
+  kind: HorizontalPodAutoscaler
+  metadata:
+   name: php-apache
+   namespace: hpa-test
+  spec:
+   scaleTargetRef:
+     apiVersion: apps/v1
+     kind: Deployment
+     name: php-apache
+   minReplicas: 1
+   maxReplicas: 10
+   targetCPUUtilizationPercentage: 50
+
+   #Examine the current state of HPA
+   kubectl -n hpa-test get hpa 
+   kubectl -n hpa-test get hpa php-apache -o yaml
+
+   #run the load test and see the HPA status again
+   kubectl -n hpa-test run -i --tty load-generator --rm --image=busybox --restart=Never -- /bin/sh -c "while sleep 0.01; do wget -q -O- http://php-apache; done"
+   kubectl -n hpa-test get hpa --watch
+      kubectl -n hpa-test get hpa php-apache -o yaml
+
+#Clean up the resources
+kubectl delete ns hpa-test --cascade
+
+# install ArgoCD in k8s
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+# access ArgoCD UI
+kubectl get svc -n argocd
+kubectl port-forward svc/argocd-server 8080:443 -n argocd
+
+# login with admin user and below token (as in documentation):
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 --decode && echo
+
+
+
+
+
+
+
+
+
+
+
