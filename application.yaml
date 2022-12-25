@@ -7,12 +7,12 @@ spec:
   project: default
 
   source:
-    repoURL: https://github.com/31hsahbus/argocd-app-config.git
+    repoURL: https://github.com/31hsahbus/HPA.git
     targetRevision: HEAD
-    path: hpa
+    path: Dev
   destination: 
     server: https://kubernetes.default.svc
-    namespace: HPA
+    namespace: hpa-argocd
 
   syncPolicy:
     syncOptions:
